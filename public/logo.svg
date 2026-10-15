@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="520" height="112" viewBox="0 0 520 112" fill="none">
+  <title>Elite Craft Interior</title>
+  <rect x="4" y="8" width="96" height="96" rx="18" fill="#202622"/>
+  <rect x="17" y="21" width="70" height="70" rx="9" stroke="#C6A66D" stroke-opacity=".45"/>
+  <path d="M49 34H30V78H49M30 56H45" stroke="#C6A66D" stroke-width="4" stroke-linecap="square"/>
+  <path d="M75 40L69 34H57V78H69L75 72" stroke="#C6A66D" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter"/>
+  <text x="121" y="56" fill="#202622" font-family="Georgia, 'Times New Roman', serif" font-size="36" letter-spacing="2">ELITE CRAFT</text>
+  <text x="124" y="81" fill="#76664C" font-family="Arial, Helvetica, sans-serif" font-size="13" letter-spacing="7">INTERIOR</text>
+</svg>
