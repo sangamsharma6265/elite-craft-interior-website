@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-
+import MobileMenu from "@/components/MobileMenu";
 import {
   business,
   categories,
@@ -28,6 +28,7 @@ export function SiteHeader() {
 
       <div className="announcement">
         <span>OWN FACTORY · CUSTOM FURNITURE · DELHI NCR</span>
+
         <a
           href={consultationLink}
           target="_blank"
@@ -64,7 +65,11 @@ export function SiteHeader() {
             }}
           >
             {navigation.map((item) => (
-              <Link key={item.label} href={item.href}>
+              <Link
+                key={item.label}
+                href={item.href}
+                prefetch={item.href === "/furniture" ? true : undefined}
+              >
                 {item.label}
               </Link>
             ))}
@@ -79,16 +84,7 @@ export function SiteHeader() {
             Get a Quote ↗
           </a>
 
-          <details className="mobile-menu">
-            <summary>Menu</summary>
-            <nav aria-label="Mobile navigation">
-              {navigation.map((item) => (
-                <Link key={item.label} href={item.href}>
-                  {item.label}
-                </Link>
-              ))}
-            </nav>
-          </details>
+          <MobileMenu navigation={navigation} />
         </div>
       </header>
     </>
@@ -103,9 +99,7 @@ export function SiteFooter() {
           <p>
             © {new Date().getFullYear()} {business.name}.
             <br />
-            <span>
-              Interiors. Exteriors. Factory-made furniture.
-            </span>
+            <span>Interiors. Exteriors. Factory-made furniture.</span>
           </p>
 
           <nav
@@ -116,11 +110,11 @@ export function SiteFooter() {
               gap: "12px 22px",
             }}
           >
-            <Link href="/services/interior-design">Interiors ↗</Link>
-            <Link href="/services/exterior-design">Exteriors ↗</Link>
-            <Link href="/services/wall-panels">Wall panels ↗</Link>
-            <Link href="/furniture">Furniture ↗</Link>
-            <Link href="/design-gallery">Design gallery ↗</Link>
+            <Link href="/services/interior-design">Interiors</Link>
+            <Link href="/services/exterior-design">Exteriors</Link>
+            <Link href="/services/wall-panels">Wall Panels</Link>
+            <Link href="/furniture">Furniture</Link>
+            <Link href="/design-gallery">Design Gallery</Link>
           </nav>
         </div>
       </footer>
@@ -155,9 +149,7 @@ export function CategoryLinks({ active }: { active?: string }) {
         <Link
           key={category.slug}
           href={`/furniture/${category.slug}`}
-          aria-current={
-            active === category.slug ? "page" : undefined
-          }
+          aria-current={active === category.slug ? "page" : undefined}
         >
           {category.shortName}
         </Link>
@@ -169,9 +161,7 @@ export function CategoryLinks({ active }: { active?: string }) {
 export function DesignCard({ design }: { design: Design }) {
   const category = getCategory(design.category);
 
-  if (!category) {
-    return null;
-  }
+  if (!category) return null;
 
   const image = design.image ?? category.image;
   const imageAlt = design.imageAlt ?? category.imageAlt;
@@ -191,22 +181,17 @@ export function DesignCard({ design }: { design: Design }) {
             sizes="(max-width: 700px) 100vw, (max-width: 1000px) 50vw, 33vw"
             className="cover-image"
           />
+
           <span className="reference-label">
-            {design.image
-              ? "Reference design"
-              : "Category inspiration"}
+            {design.image ? "Reference design" : "Category inspiration"}
           </span>
         </div>
 
         <div className="design-content">
-          <p className="eyebrow">
-            {design.code} · CUSTOM ORDERS
-          </p>
+          <p className="eyebrow">{design.code} · CUSTOM ORDERS</p>
           <h3>{design.name}</h3>
           <p className="ec-card-summary">{design.summary}</p>
-          <span className="text-link">
-            View & customise ↗
-          </span>
+          <span className="text-link">View & customise ↗</span>
         </div>
       </Link>
     </article>
