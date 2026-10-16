@@ -8,8 +8,12 @@ import {
   getCategory,
 } from "@/lib/catalogue";
 import { services } from "@/lib/services";
+import { absoluteUrl, site } from "@/lib/site";
 
-type SearchParams = Record<string, string | string[] | undefined>;
+type SearchParams = Record<
+  string,
+  string | string[] | undefined
+>;
 
 type PageProps = {
   searchParams: Promise<SearchParams>;
@@ -40,7 +44,8 @@ const galleryItems: GalleryItem[] = [
       image: design.image!,
       imageAlt: design.imageAlt ?? design.name,
       category: design.category,
-      categoryName: getCategory(design.category)?.shortName ?? "Furniture",
+      categoryName:
+        getCategory(design.category)?.shortName ?? "Furniture",
       href: `/designs/${design.slug}`,
     })),
 
@@ -70,8 +75,12 @@ const galleryCategories = [
   })),
 ];
 
-function single(value: string | string[] | undefined): string {
-  return Array.isArray(value) ? value[0] ?? "" : value ?? "";
+function single(
+  value: string | string[] | undefined,
+): string {
+  return Array.isArray(value)
+    ? value[0] ?? ""
+    : value ?? "";
 }
 
 function galleryLink(
@@ -87,32 +96,12 @@ function galleryLink(
 
   const search = params.toString();
 
-  return `/design-gallery${search ? `?${search}` : ""}#gallery-results`;
+  return `/design-gallery${
+    search ? `?${search}` : ""
+  }#gallery-results`;
 }
 
-export async function generateMetadata({
-  searchParams,
-}: PageProps): Promise<Metadata> {
-  const params = await searchParams;
-
-  const filtered = Boolean(
-    single(params.q) || single(params.category) || single(params.page),
-  );
-
-  return {
-    title: "Furniture & Interior Design Gallery in Delhi NCR",
-    description:
-      "Browse furniture, interior, exterior and wall-panel reference designs. Explore custom options with Elite Craft Interior, serving Delhi NCR.",
-    robots: filtered
-      ? { index: false, follow: true }
-      : { index: true, follow: true },
-  };
-}
-
-export default async function DesignGalleryPage({
-  searchParams,
-}: PageProps) {
-  const params = await searchParams;
+function resolveGallery(params: SearchParams) {
   const query = single(params.q).trim().slice(0, 150);
   const selectedCategory = single(params.category);
 
@@ -122,16 +111,23 @@ export default async function DesignGalleryPage({
     ? selectedCategory
     : "";
 
-  const queryWords = query.toLowerCase().split(/\s+/).filter(Boolean);
+  const queryWords = query
+    .toLowerCase()
+    .split(/\s+/)
+    .filter(Boolean);
 
   const matchingItems = galleryItems.filter((item) => {
-    if (category && item.category !== category) return false;
+    if (category && item.category !== category) {
+      return false;
+    }
 
     const searchable =
       `${item.name} ${item.code} ${item.description} ${item.categoryName}`
         .toLowerCase();
 
-    return queryWords.every((word) => searchable.includes(word));
+    return queryWords.every((word) =>
+      searchable.includes(word),
+    );
   });
 
   const totalPages = Math.max(
@@ -140,6 +136,7 @@ export default async function DesignGalleryPage({
   );
 
   const requestedPage = Number(single(params.page) || "1");
+
   const validPage =
     Number.isSafeInteger(requestedPage) && requestedPage > 0
       ? requestedPage
@@ -147,7 +144,90 @@ export default async function DesignGalleryPage({
 
   const page = Math.min(validPage, totalPages);
   const start = (page - 1) * PAGE_SIZE;
-  const visibleItems = matchingItems.slice(start, start + PAGE_SIZE);
+  const visibleItems = matchingItems.slice(
+    start,
+    start + PAGE_SIZE,
+  );
+
+  return {
+    query,
+    category,
+    matchingItems,
+    totalPages,
+    page,
+    start,
+    visibleItems,
+  };
+}
+
+export async function generateMetadata({
+  searchParams,
+}: PageProps): Promise<Metadata> {
+  const params = await searchParams;
+  const { query, category, page } = resolveGallery(params);
+
+  const filtered = Boolean(query || category);
+  const path = galleryLink(query, category, page).split("#")[0];
+  const url = absoluteUrl(path);
+
+  const title =
+    "Furniture & Interior Design Gallery in Delhi NCR" +
+    (page > 1 ? ` | Page ${page}` : "");
+
+  const description =
+    "Browse furniture, interior, exterior and wall-panel reference designs. Explore custom options with Elite Craft Interior, serving Delhi NCR.";
+
+  const reference =
+    galleryItems.find((item) => item.category === category) ??
+    galleryItems[0];
+
+  return {
+    title,
+    description,
+    alternates: {
+      canonical: url,
+    },
+    robots: {
+      index: !filtered,
+      follow: true,
+    },
+    openGraph: {
+      type: "website",
+      locale: "en_IN",
+      siteName: site.name,
+      url,
+      title: `${title} | ${site.name}`,
+      description,
+      images: [
+        {
+          url: reference.image,
+          alt: reference.imageAlt,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${title} | ${site.name}`,
+      description,
+      images: [reference.image],
+    },
+  };
+}
+
+export default async function DesignGalleryPage({
+  searchParams,
+}: PageProps) {
+  const params = await searchParams;
+
+  const {
+    query,
+    category,
+    matchingItems,
+    totalPages,
+    page,
+    start,
+    visibleItems,
+  } = resolveGallery(params);
 
   const paginationPages = Array.from(
     { length: totalPages },
@@ -162,10 +242,13 @@ export default async function DesignGalleryPage({
   return (
     <main id="main-content" className="ec-gallery">
       <div className="container">
-        <nav className="ec-gallery-breadcrumb" aria-label="Breadcrumb">
+        <nav
+          className="ec-gallery-breadcrumb"
+          aria-label="Breadcrumb"
+        >
           <Link href="/">Home</Link>
           <span aria-hidden="true">/</span>
-          <span>Design Gallery</span>
+          <span aria-current="page">Design Gallery</span>
         </nav>
 
         <header className="ec-gallery-hero">
@@ -174,13 +257,15 @@ export default async function DesignGalleryPage({
           </p>
           <h1>Find a design that feels like you.</h1>
           <p>
-            Explore {galleryItems.length} reference designs for your home,
-            office or outdoor space. Choose a direction, note its code and
-            discuss custom options with our team.
+            Explore {galleryItems.length} reference designs for your
+            home, office or outdoor space. Choose a direction, note
+            its code and discuss custom options with our team.
           </p>
 
           <div className="ec-gallery-hero-links">
-            <Link href="/furniture">Buy custom furniture ↗</Link>
+            <Link href="/furniture">
+              Buy custom furniture ↗
+            </Link>
             <a
               href={consultationLink}
               target="_blank"
@@ -192,18 +277,28 @@ export default async function DesignGalleryPage({
         </header>
 
         <aside className="ec-gallery-note">
-          These photographs are design references, not our completed projects.
-          Materials, dimensions, feasibility and the final scope are confirmed
-          in your quote.
+          These photographs are design references, not our completed
+          projects. Materials, dimensions, feasibility and the final
+          scope are confirmed in your quote.
         </aside>
 
-        <section id="gallery-results" className="ec-gallery-results">
-          <h2 className="ec-gallery-filter-heading">Explore the collection</h2>
+        <section
+          id="gallery-results"
+          className="ec-gallery-results"
+        >
+          <h2 className="ec-gallery-filter-heading">
+            Explore the collection
+          </h2>
 
-          <form action="/design-gallery#gallery-results" method="get">
+          <form
+            action="/design-gallery#gallery-results"
+            method="get"
+          >
             <div className="ec-gallery-search">
               <div>
-                <label htmlFor="gallery-search">Search designs</label>
+                <label htmlFor="gallery-search">
+                  Search designs
+                </label>
                 <input
                   id="gallery-search"
                   type="search"
@@ -215,7 +310,9 @@ export default async function DesignGalleryPage({
               </div>
 
               <div>
-                <label htmlFor="gallery-category">Category</label>
+                <label htmlFor="gallery-category">
+                  Category
+                </label>
                 <select
                   id="gallery-category"
                   name="category"
@@ -223,7 +320,10 @@ export default async function DesignGalleryPage({
                 >
                   <option value="">All categories</option>
                   {galleryCategories.map((item) => (
-                    <option key={item.slug} value={item.slug}>
+                    <option
+                      key={item.slug}
+                      value={item.slug}
+                    >
                       {item.name}
                     </option>
                   ))}
@@ -234,7 +334,10 @@ export default async function DesignGalleryPage({
             </div>
           </form>
 
-          <nav className="ec-gallery-tabs" aria-label="Design categories">
+          <nav
+            className="ec-gallery-tabs"
+            aria-label="Design categories"
+          >
             <Link
               href={galleryLink(query, "")}
               aria-current={!category ? "page" : undefined}
@@ -246,7 +349,9 @@ export default async function DesignGalleryPage({
               <Link
                 key={item.slug}
                 href={galleryLink(query, item.slug)}
-                aria-current={category === item.slug ? "page" : undefined}
+                aria-current={
+                  category === item.slug ? "page" : undefined
+                }
               >
                 {item.name}
               </Link>
@@ -256,7 +361,9 @@ export default async function DesignGalleryPage({
           <div className="ec-gallery-result-summary">
             <p>
               {matchingItems.length > 0
-                ? `Showing ${start + 1}–${start + visibleItems.length} of ${matchingItems.length} designs`
+                ? `Showing ${start + 1}–${
+                    start + visibleItems.length
+                  } of ${matchingItems.length} designs`
                 : "No matching designs"}
               {query ? ` for “${query}”` : ""}
             </p>
@@ -271,8 +378,14 @@ export default async function DesignGalleryPage({
           {visibleItems.length > 0 ? (
             <div className="ec-gallery-grid">
               {visibleItems.map((item) => (
-                <article className="ec-gallery-card" key={item.id}>
-                  <Link href={item.href} className="ec-gallery-card-link">
+                <article
+                  className="ec-gallery-card"
+                  key={item.id}
+                >
+                  <Link
+                    href={item.href}
+                    className="ec-gallery-card-link"
+                  >
                     <div className="ec-gallery-photo">
                       <Image
                         src={item.image}
@@ -302,8 +415,8 @@ export default async function DesignGalleryPage({
             <div className="ec-gallery-empty">
               <h3>Try another search.</h3>
               <p>
-                Use a shorter term or choose another category. You can also
-                share your own design idea with us.
+                Use a shorter term or choose another category. You
+                can also share your own design idea with us.
               </p>
               <Link href="/design-gallery#gallery-results">
                 Browse all designs ↗
@@ -312,26 +425,48 @@ export default async function DesignGalleryPage({
           )}
 
           {totalPages > 1 && (
-            <nav className="ec-gallery-pagination" aria-label="Gallery pages">
+            <nav
+              className="ec-gallery-pagination"
+              aria-label="Gallery pages"
+            >
               {page > 1 && (
-                <Link href={galleryLink(query, category, page - 1)}>
+                <Link
+                  href={galleryLink(
+                    query,
+                    category,
+                    page - 1,
+                  )}
+                >
                   ← Previous
                 </Link>
               )}
 
               {paginationPages.map((number, index) => (
-                <span className="ec-gallery-page-item" key={number}>
+                <span
+                  className="ec-gallery-page-item"
+                  key={number}
+                >
                   {index > 0 &&
-                    number > paginationPages[index - 1] + 1 && (
-                      <span className="ec-gallery-ellipsis" aria-hidden="true">
+                    number >
+                      paginationPages[index - 1] + 1 && (
+                      <span
+                        className="ec-gallery-ellipsis"
+                        aria-hidden="true"
+                      >
                         …
                       </span>
                     )}
 
                   <Link
-                    href={galleryLink(query, category, number)}
+                    href={galleryLink(
+                      query,
+                      category,
+                      number,
+                    )}
                     aria-label={`Page ${number}`}
-                    aria-current={number === page ? "page" : undefined}
+                    aria-current={
+                      number === page ? "page" : undefined
+                    }
                   >
                     {number}
                   </Link>
@@ -339,7 +474,13 @@ export default async function DesignGalleryPage({
               ))}
 
               {page < totalPages && (
-                <Link href={galleryLink(query, category, page + 1)}>
+                <Link
+                  href={galleryLink(
+                    query,
+                    category,
+                    page + 1,
+                  )}
+                >
                   Next →
                 </Link>
               )}
@@ -348,12 +489,14 @@ export default async function DesignGalleryPage({
         </section>
 
         <section className="ec-gallery-contact">
-          <p className="ec-gallery-eyebrow">HAVE SOMETHING ELSE IN MIND?</p>
+          <p className="ec-gallery-eyebrow">
+            HAVE SOMETHING ELSE IN MIND?
+          </p>
           <h2>Your inspiration is welcome.</h2>
           <p>
-            Send your favourite design, room measurements and location. We can
-            discuss a single furniture order or a wider project across Delhi
-            NCR.
+            Send your favourite design, room measurements and
+            location. We can discuss a single furniture order or a
+            wider project across Delhi NCR.
           </p>
           <a
             href={consultationLink}
@@ -382,7 +525,9 @@ export default async function DesignGalleryPage({
           padding: 48px 0 30px;
           max-width: 850px;
         }
-        .ec-gallery h1, .ec-gallery h2, .ec-gallery h3 {
+        .ec-gallery h1,
+        .ec-gallery h2,
+        .ec-gallery h3 {
           font-family: Georgia, serif;
           font-weight: 400;
         }
@@ -441,7 +586,8 @@ export default async function DesignGalleryPage({
           margin-bottom: 9px;
           font-size: 13px;
         }
-        .ec-gallery-search input, .ec-gallery-search select {
+        .ec-gallery-search input,
+        .ec-gallery-search select {
           box-sizing: border-box;
           width: 100%;
           min-width: 0;
@@ -454,7 +600,9 @@ export default async function DesignGalleryPage({
           font: inherit;
           font-size: 14px;
         }
-        .ec-gallery-search input::placeholder { color: #b8bdb2; }
+        .ec-gallery-search input::placeholder {
+          color: #b8bdb2;
+        }
         .ec-gallery-search button {
           min-height: 49px;
           padding: 12px 22px;
@@ -494,7 +642,8 @@ export default async function DesignGalleryPage({
         .ec-gallery-result-summary a { color: #c6a66d; }
         .ec-gallery-grid {
           display: grid;
-          grid-template-columns: repeat(3, minmax(0, 1fr));
+          grid-template-columns:
+            repeat(3, minmax(0, 1fr));
           gap: 28px;
         }
         .ec-gallery-card {
@@ -512,7 +661,9 @@ export default async function DesignGalleryPage({
           overflow: hidden;
           background: #30392f;
         }
-        .ec-gallery-photo img { transition: transform .35s ease; }
+        .ec-gallery-photo img {
+          transition: transform .35s ease;
+        }
         .ec-gallery-card-link:hover .ec-gallery-photo img {
           transform: scale(1.035);
         }
@@ -587,20 +738,33 @@ export default async function DesignGalleryPage({
           outline-offset: 4px;
         }
         @media (max-width: 1100px) {
-          .ec-gallery-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+          .ec-gallery-grid {
+            grid-template-columns:
+              repeat(2, minmax(0, 1fr));
+          }
         }
         @media (max-width: 800px) {
-          .ec-gallery-search { grid-template-columns: 1fr 1fr; }
-          .ec-gallery-search > div:first-child { grid-column: 1 / -1; }
+          .ec-gallery-search {
+            grid-template-columns: 1fr 1fr;
+          }
+          .ec-gallery-search > div:first-child {
+            grid-column: 1 / -1;
+          }
         }
         @media (max-width: 700px) {
-          .ec-gallery-grid { grid-template-columns: 1fr; }
+          .ec-gallery-grid {
+            grid-template-columns: 1fr;
+          }
           .ec-gallery-hero { padding-top: 30px; }
           .ec-gallery-contact { padding: 24px; }
         }
         @media (max-width: 480px) {
-          .ec-gallery-search { grid-template-columns: 1fr; }
-          .ec-gallery-search > div:first-child { grid-column: auto; }
+          .ec-gallery-search {
+            grid-template-columns: 1fr;
+          }
+          .ec-gallery-search > div:first-child {
+            grid-column: auto;
+          }
         }
         @media (prefers-reduced-motion: reduce) {
           .ec-gallery-photo img { transition: none; }

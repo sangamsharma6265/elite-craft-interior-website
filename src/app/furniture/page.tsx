@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-
 import { DesignCard } from "@/components/SiteUI";
 import {
   categories,
@@ -9,8 +8,12 @@ import {
   designs,
   getCategory,
 } from "@/lib/catalogue";
+import { absoluteUrl, site } from "@/lib/site";
 
-type SearchValues = Record<string, string | string[] | undefined>;
+type SearchValues = Record<
+  string,
+  string | string[] | undefined
+>;
 
 type PageProps = {
   searchParams: Promise<SearchValues>;
@@ -18,49 +21,30 @@ type PageProps = {
 
 const PAGE_SIZE = 24;
 
-function first(value: string | string[] | undefined): string {
-  return Array.isArray(value) ? value[0] ?? "" : value ?? "";
+function first(
+  value: string | string[] | undefined,
+): string {
+  return Array.isArray(value)
+    ? value[0] ?? ""
+    : value ?? "";
 }
 
-export async function generateMetadata({
-  searchParams,
-}: PageProps): Promise<Metadata> {
-  const params = await searchParams;
-
-  const hasQuery = Object.values(params).some((value) =>
-    Array.isArray(value)
-      ? value.some((item) => item.length > 0)
-      : Boolean(value)
-  );
-
-  return {
-    title: "Custom Furniture & Design Catalogue in Delhi NCR",
-    description:
-      "Browse sofas, TV units, coffee tables, dining tables and custom furniture from Elite Craft Interior. Own-factory manufacturing and free initial consultation across Delhi NCR.",
-    robots: hasQuery
-      ? { index: false, follow: true }
-      : { index: true, follow: true },
-  };
-}
-
-export default async function FurniturePage({
-  searchParams,
-}: PageProps) {
-  const params = await searchParams;
-
+function resolveFurniture(params: SearchValues) {
   const query = first(params.q).trim().slice(0, 120);
   const requestedCategory = first(params.category);
-  const selectedCategory = getCategory(requestedCategory)?.slug ?? "";
+  const selectedCategory =
+    getCategory(requestedCategory)?.slug ?? "";
   const searchTerm = query.toLowerCase();
 
   const filteredDesigns = designs.filter((design) => {
-    if (selectedCategory && design.category !== selectedCategory) {
+    if (
+      selectedCategory &&
+      design.category !== selectedCategory
+    ) {
       return false;
     }
 
-    if (!searchTerm) {
-      return true;
-    }
+    if (!searchTerm) return true;
 
     const category = getCategory(design.category);
 
@@ -79,7 +63,7 @@ export default async function FurniturePage({
 
   const pageCount = Math.max(
     1,
-    Math.ceil(filteredDesigns.length / PAGE_SIZE)
+    Math.ceil(filteredDesigns.length / PAGE_SIZE),
   );
 
   const requestedPage = Number(first(params.page) || "1");
@@ -88,23 +72,125 @@ export default async function FurniturePage({
     pageCount,
     Math.max(
       1,
-      Number.isSafeInteger(requestedPage) ? requestedPage : 1
-    )
+      Number.isSafeInteger(requestedPage)
+        ? requestedPage
+        : 1,
+    ),
   );
 
   const startIndex = (page - 1) * PAGE_SIZE;
 
   const visibleDesigns = filteredDesigns.slice(
     startIndex,
-    startIndex + PAGE_SIZE
+    startIndex + PAGE_SIZE,
   );
+
+  return {
+    query,
+    selectedCategory,
+    filteredDesigns,
+    pageCount,
+    page,
+    startIndex,
+    visibleDesigns,
+  };
+}
+
+function canonicalFurnitureUrl(
+  query: string,
+  category: string,
+  page: number,
+): string {
+  const values = new URLSearchParams();
+
+  if (query) values.set("q", query);
+  if (category) values.set("category", category);
+  if (page > 1) values.set("page", String(page));
+
+  const search = values.toString();
+
+  return absoluteUrl(
+    `/furniture${search ? `?${search}` : ""}`,
+  );
+}
+
+export async function generateMetadata({
+  searchParams,
+}: PageProps): Promise<Metadata> {
+  const params = await searchParams;
+  const { query, selectedCategory, page } =
+    resolveFurniture(params);
+
+  const filtered = Boolean(query || selectedCategory);
+
+  const url = canonicalFurnitureUrl(
+    query,
+    selectedCategory,
+    page,
+  );
+
+  const title =
+    "Custom Furniture & Design Catalogue in Delhi NCR" +
+    (page > 1 ? ` | Page ${page}` : "");
+
+  const description =
+    "Browse sofas, beds, wardrobes, dining tables, TV units, office furniture and modular kitchens from Elite Craft Interior. Own factory and free initial consultation across Delhi NCR.";
+
+  const category =
+    getCategory(selectedCategory) ?? categories[0];
+
+  return {
+    title,
+    description,
+    alternates: {
+      canonical: url,
+    },
+    robots: {
+      index: !filtered,
+      follow: true,
+    },
+    openGraph: {
+      type: "website",
+      locale: "en_IN",
+      siteName: site.name,
+      url,
+      title: `${title} | ${site.name}`,
+      description,
+      images: [
+        {
+          url: category.image,
+          alt: category.imageAlt,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${title} | ${site.name}`,
+      description,
+      images: [category.image],
+    },
+  };
+}
+
+export default async function FurniturePage({
+  searchParams,
+}: PageProps) {
+  const params = await searchParams;
+
+  const {
+    query,
+    selectedCategory,
+    filteredDesigns,
+    pageCount,
+    page,
+    startIndex,
+    visibleDesigns,
+  } = resolveFurniture(params);
 
   function pageHref(nextPage: number): string {
     const values = new URLSearchParams();
 
-    if (query) {
-      values.set("q", query);
-    }
+    if (query) values.set("q", query);
 
     if (selectedCategory) {
       values.set("category", selectedCategory);
@@ -120,23 +206,22 @@ export default async function FurniturePage({
   }
 
   return (
-    <main>
+    <main id="main-content">
       <style>{`
         .ec-browse-form {
           display: grid;
-          grid-template-columns: minmax(0, 1fr) minmax(180px, 260px) auto;
+          grid-template-columns:
+            minmax(0, 1fr) minmax(180px, 260px) auto;
           gap: 16px;
           align-items: end;
           margin: 28px 0;
         }
-
         .ec-browse-field {
           display: grid;
           gap: 8px;
           font-size: 14px;
           font-weight: 600;
         }
-
         .ec-browse-field input,
         .ec-browse-field select {
           width: 100%;
@@ -149,41 +234,27 @@ export default async function FurniturePage({
           font: inherit;
           font-weight: 400;
         }
-
         .ec-browse-field input:focus-visible,
         .ec-browse-field select:focus-visible {
           outline: 2px solid #927340;
           outline-offset: 3px;
         }
-
         .ec-collection-photo {
           position: relative;
           aspect-ratio: 4 / 3;
           overflow: hidden;
           background: #e8e2d8;
         }
-
         .ec-collection-photo img {
           object-fit: cover;
           transition: transform 250ms ease;
         }
-
         .ec-collection-card:hover .ec-collection-photo img {
           transform: scale(1.025);
         }
-
-        .ec-collection-copy {
-          padding: 22px;
-        }
-
-        .ec-collection-copy h3 {
-          margin: 8px 0 12px;
-        }
-
-        .ec-collection-copy p {
-          line-height: 1.7;
-        }
-
+        .ec-collection-copy { padding: 22px; }
+        .ec-collection-copy h3 { margin: 8px 0 12px; }
+        .ec-collection-copy p { line-height: 1.7; }
         .ec-results-bar {
           display: flex;
           justify-content: space-between;
@@ -192,7 +263,6 @@ export default async function FurniturePage({
           gap: 16px;
           margin: 24px 0;
         }
-
         .ec-pagination {
           display: flex;
           justify-content: center;
@@ -201,7 +271,6 @@ export default async function FurniturePage({
           gap: 10px;
           margin-top: 40px;
         }
-
         .ec-page-link {
           min-width: 42px;
           min-height: 42px;
@@ -212,52 +281,44 @@ export default async function FurniturePage({
           border: 1px solid #d7d0c4;
           text-decoration: none;
         }
-
         .ec-page-link[aria-current="page"] {
           background: #202622;
           color: #fffdf8;
           border-color: #202622;
         }
-
         .ec-empty-results {
           padding: 40px;
           border: 1px solid #d7d0c4;
           background: #fffdf8;
         }
-
         @media (max-width: 800px) {
           .ec-browse-form {
             grid-template-columns: 1fr 1fr;
           }
-
           .ec-browse-form button {
             grid-column: 1 / -1;
           }
         }
-
         @media (max-width: 560px) {
           .ec-browse-form {
             grid-template-columns: 1fr;
           }
-
-          .ec-empty-results {
-            padding: 24px;
-          }
+          .ec-empty-results { padding: 24px; }
         }
-
         @media (prefers-reduced-motion: reduce) {
-          .ec-collection-photo img {
-            transition: none;
-          }
+          .ec-collection-photo img { transition: none; }
         }
       `}</style>
 
       <section className="section ec-page-intro">
         <div className="container">
-          <nav className="ec-breadcrumbs" aria-label="Breadcrumb">
+          <nav
+            className="ec-breadcrumbs"
+            aria-label="Breadcrumb"
+          >
             <Link href="/">Home</Link>
             <span aria-hidden="true"> / </span>
-            <span>Furniture</span>
+            <span aria-current="page">Furniture</span>
           </nav>
 
           <p className="eyebrow">
@@ -268,16 +329,22 @@ export default async function FurniturePage({
 
           <p className="ec-lead">
             Choose a design direction, then make it your own. Order
-            individual furniture pieces or plan a coordinated room with
-            Elite Craft Interior.
+            individual furniture pieces or plan a coordinated room
+            with Elite Craft Interior.
           </p>
 
           <div className="button-row">
-            <a className="button button-primary" href="#collections">
+            <a
+              className="button button-primary"
+              href="#collections"
+            >
               Explore collections
             </a>
 
-            <a className="button button-secondary" href={consultationLink}>
+            <a
+              className="button button-secondary"
+              href={consultationLink}
+            >
               Free consultation
             </a>
           </div>
@@ -285,7 +352,8 @@ export default async function FurniturePage({
           <p className="ec-notice">
             Catalogue images are design references. Final materials,
             dimensions, construction and price are confirmed in your
-            quotation. They are not photographs of our completed work.
+            quotation. They are not photographs of our completed
+            work.
           </p>
         </div>
       </section>
@@ -299,19 +367,21 @@ export default async function FurniturePage({
           <div className="section-heading">
             <div>
               <p className="eyebrow">BROWSE BY PRODUCT</p>
-              <h2 id="collections-heading">Find your starting point.</h2>
+              <h2 id="collections-heading">
+                Find your starting point.
+              </h2>
             </div>
 
             <p className="section-intro">
-              Explore a collection, compare the references and send us
-              the design code you like.
+              Explore a collection, compare the references and send
+              us the design code you like.
             </p>
           </div>
 
           <div className="ec-category-grid">
             {categories.map((category) => {
               const count = designs.filter(
-                (design) => design.category === category.slug
+                (design) => design.category === category.slug,
               ).length;
 
               return (
@@ -319,7 +389,10 @@ export default async function FurniturePage({
                   key={category.slug}
                   href={`/furniture/${category.slug}`}
                   className="ec-category-card ec-collection-card"
-                  style={{ padding: 0, overflow: "hidden" }}
+                  style={{
+                    padding: 0,
+                    overflow: "hidden",
+                  }}
                 >
                   <div className="ec-collection-photo">
                     <Image
@@ -332,9 +405,11 @@ export default async function FurniturePage({
 
                   <div className="ec-collection-copy">
                     <p className="eyebrow">
-                      {count} {count === 1 ? "REFERENCE" : "REFERENCES"}
+                      {count}{" "}
+                      {count === 1
+                        ? "REFERENCE"
+                        : "REFERENCES"}
                     </p>
-
                     <h3>{category.name}</h3>
                     <p>{category.description}</p>
                     <span className="text-link">
@@ -356,8 +431,12 @@ export default async function FurniturePage({
         <div className="container">
           <div className="section-heading">
             <div>
-              <p className="eyebrow">YOUR DESIGN SHORTLIST STARTS HERE</p>
-              <h2 id="designs-heading">Browse the catalogue.</h2>
+              <p className="eyebrow">
+                YOUR DESIGN SHORTLIST STARTS HERE
+              </p>
+              <h2 id="designs-heading">
+                Browse the catalogue.
+              </h2>
             </div>
 
             <p className="section-intro">
@@ -373,7 +452,10 @@ export default async function FurniturePage({
             role="search"
             aria-label="Search furniture designs"
           >
-            <label className="ec-browse-field" htmlFor="furniture-search">
+            <label
+              className="ec-browse-field"
+              htmlFor="furniture-search"
+            >
               Search designs
               <input
                 id="furniture-search"
@@ -396,16 +478,21 @@ export default async function FurniturePage({
                 defaultValue={selectedCategory}
               >
                 <option value="">All collections</option>
-
                 {categories.map((category) => (
-                  <option key={category.slug} value={category.slug}>
+                  <option
+                    key={category.slug}
+                    value={category.slug}
+                  >
                     {category.shortName}
                   </option>
                 ))}
               </select>
             </label>
 
-            <button className="button button-primary" type="submit">
+            <button
+              className="button button-primary"
+              type="submit"
+            >
               Find designs
             </button>
           </form>
@@ -420,7 +507,10 @@ export default async function FurniturePage({
             </p>
 
             {(query || selectedCategory) && (
-              <Link href="/furniture#designs" className="text-link">
+              <Link
+                href="/furniture#designs"
+                className="text-link"
+              >
                 Clear filters
               </Link>
             )}
@@ -429,17 +519,19 @@ export default async function FurniturePage({
           {visibleDesigns.length > 0 ? (
             <div className="design-grid">
               {visibleDesigns.map((design) => (
-                <DesignCard key={design.slug} design={design} />
+                <DesignCard
+                  key={design.slug}
+                  design={design}
+                />
               ))}
             </div>
           ) : (
             <div className="ec-empty-results">
               <h3>Have another design in mind?</h3>
               <p>
-                Try a shorter search or send us your reference image.
-                We can discuss a custom piece for your room.
+                Try a shorter search or send us your reference
+                image. We can discuss a custom piece for your room.
               </p>
-
               <a
                 className="button button-primary"
                 href={consultationLink}
@@ -464,21 +556,26 @@ export default async function FurniturePage({
                 </Link>
               )}
 
-              {Array.from({ length: pageCount }, (_, index) => {
-                const number = index + 1;
+              {Array.from(
+                { length: pageCount },
+                (_, index) => {
+                  const number = index + 1;
 
-                return (
-                  <Link
-                    key={number}
-                    href={pageHref(number)}
-                    className="ec-page-link"
-                    aria-current={number === page ? "page" : undefined}
-                    aria-label={`Catalogue page ${number}`}
-                  >
-                    {number}
-                  </Link>
-                );
-              })}
+                  return (
+                    <Link
+                      key={number}
+                      href={pageHref(number)}
+                      className="ec-page-link"
+                      aria-current={
+                        number === page ? "page" : undefined
+                      }
+                      aria-label={`Catalogue page ${number}`}
+                    >
+                      {number}
+                    </Link>
+                  );
+                },
+              )}
 
               {page < pageCount && (
                 <Link
@@ -493,16 +590,18 @@ export default async function FurniturePage({
           )}
 
           <p className="ec-notice">
-            Sofa, TV-unit, coffee-table and dining collections each have
-            25 references. Bedroom, office, kitchen and storage
-            collections are being expanded.
+            Explore {designs.length} references across{" "}
+            {categories.length} furniture collections. Choose a
+            collection above to browse all its designs.
           </p>
         </div>
       </section>
 
       <section className="section contact-section">
         <div className="container">
-          <p className="eyebrow">ORDER DIRECTLY FROM OUR OWN FACTORY</p>
+          <p className="eyebrow">
+            ORDER DIRECTLY FROM OUR OWN FACTORY
+          </p>
           <h2>One piece or a complete room.</h2>
 
           <p className="ec-lead">
@@ -512,11 +611,16 @@ export default async function FurniturePage({
           </p>
 
           <div className="button-row">
-            <a className="button button-gold" href={consultationLink}>
+            <a
+              className="button button-gold"
+              href={consultationLink}
+            >
               Discuss your furniture
             </a>
-
-            <Link className="text-link" href="/our-factory">
+            <Link
+              className="text-link"
+              href="/our-factory"
+            >
               Explore our factory approach ↗
             </Link>
           </div>
