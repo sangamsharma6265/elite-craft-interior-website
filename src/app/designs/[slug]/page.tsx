@@ -9,6 +9,7 @@ import {
   getDesign,
   whatsapp,
 } from "@/lib/catalogue";
+import { absoluteUrl, site } from "@/lib/site";
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -26,22 +27,43 @@ export async function generateMetadata({
   const { slug } = await params;
   const design = getDesign(slug);
 
-  if (!design) return {};
+  if (!design) notFound();
 
-  const category = getCategory(design.category)!;
+  const category = getCategory(design.category);
+
+  if (!category) notFound();
+
+  const url = absoluteUrl(`/designs/${design.slug}`);
+  const image = design.image ?? category.image;
+  const imageAlt = design.imageAlt ?? category.imageAlt;
+  const description =
+    `${design.summary} Request a custom quotation from Elite Craft Interior. Reference ${design.code}.`;
 
   return {
     title: `${design.name} | Custom Furniture in Delhi NCR`,
-    description: `${design.summary} Request a custom quotation from Elite Craft Interior. Reference ${design.code}.`,
+    description,
+    alternates: {
+      canonical: url,
+    },
     openGraph: {
+      type: "website",
+      locale: "en_IN",
+      siteName: site.name,
+      url,
       title: `${design.name} | Elite Craft Interior`,
-      description: design.summary,
+      description,
       images: [
         {
-          url: design.image ?? category.image,
-          alt: design.imageAlt ?? category.imageAlt,
+          url: image,
+          alt: imageAlt,
         },
       ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${design.name} | Elite Craft Interior`,
+      description,
+      images: [image],
     },
   };
 }
@@ -52,7 +74,10 @@ export default async function DesignPage({ params }: Props) {
 
   if (!design) notFound();
 
-  const category = getCategory(design.category)!;
+  const category = getCategory(design.category);
+
+  if (!category) notFound();
+
   const image = design.image ?? category.image;
   const imageAlt = design.imageAlt ?? category.imageAlt;
 
@@ -72,8 +97,46 @@ export default async function DesignPage({ params }: Props) {
     `Hello Elite Craft Interior, I would like to customise the ${design.name} reference (${design.code}). I can share my dimensions, preferred materials and budget.`,
   );
 
+  const breadcrumbs = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "Home",
+        item: absoluteUrl("/"),
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: "Furniture",
+        item: absoluteUrl("/furniture"),
+      },
+      {
+        "@type": "ListItem",
+        position: 3,
+        name: category.shortName,
+        item: absoluteUrl(`/furniture/${category.slug}`),
+      },
+      {
+        "@type": "ListItem",
+        position: 4,
+        name: design.name,
+        item: absoluteUrl(`/designs/${design.slug}`),
+      },
+    ],
+  };
+
   return (
     <main id="main-content">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(breadcrumbs).replace(/</g, "\\u003c"),
+        }}
+      />
+
       <section className="ec-page-intro">
         <div className="container">
           <nav className="ec-breadcrumbs" aria-label="Breadcrumb">
@@ -81,9 +144,11 @@ export default async function DesignPage({ params }: Props) {
             <span aria-hidden="true">/</span>
             <Link href="/furniture">Furniture</Link>
             <span aria-hidden="true">/</span>
+
             <Link href={`/furniture/${category.slug}`}>
               {category.shortName}
             </Link>
+
             <span aria-hidden="true">/</span>
             <span aria-current="page">{design.name}</span>
           </nav>
@@ -98,6 +163,7 @@ export default async function DesignPage({ params }: Props) {
                 priority
                 className="cover-image"
               />
+
               <figcaption>
                 {design.image
                   ? "Reference image for discussing a similar custom design."
@@ -146,6 +212,7 @@ export default async function DesignPage({ params }: Props) {
                 >
                   Request Price ↗
                 </a>
+
                 <a
                   className="text-link"
                   href={customiseLink}
@@ -187,6 +254,7 @@ export default async function DesignPage({ params }: Props) {
             <div>
               <p className="eyebrow">PLAN YOUR ORDER</p>
               <h2>Consider the useful details.</h2>
+
               <ul className="ec-feature-list">
                 {design.features.map((feature) => (
                   <li key={feature}>{feature}</li>
@@ -197,6 +265,7 @@ export default async function DesignPage({ params }: Props) {
             <div>
               <p className="eyebrow">MAKE IT YOUR OWN</p>
               <h2>Discuss your options.</h2>
+
               <ul className="ec-feature-list">
                 {design.choices.map((choice) => (
                   <li key={choice}>{choice}</li>
@@ -213,6 +282,7 @@ export default async function DesignPage({ params }: Props) {
         <div className="container faq-grid">
           <div>
             <p className="eyebrow">BEFORE YOU ORDER</p>
+
             <h2 id="order-title">
               Your design.
               <br />
@@ -222,7 +292,9 @@ export default async function DesignPage({ params }: Props) {
 
           <div className="faq-list">
             <details>
-              <summary>Will my furniture look exactly like the photograph?</summary>
+              <summary>
+                Will my furniture look exactly like the photograph?
+              </summary>
               <p>
                 The photograph establishes a reference direction. We discuss
                 a similar design adapted to your dimensions and chosen materials.
@@ -231,11 +303,11 @@ export default async function DesignPage({ params }: Props) {
             </details>
 
             <details>
-              <summary>Are chairs and other pictured items included?</summary>
+              <summary>Are other pictured items included?</summary>
               <p>
                 Only items listed in your confirmed quotation are included.
-                Matching chairs, accessories, delivery and installation can be
-                discussed separately.
+                Matching furniture, accessories, delivery and installation can
+                be discussed separately.
               </p>
             </details>
 
@@ -261,6 +333,7 @@ export default async function DesignPage({ params }: Props) {
               <h2 id="related-title">
                 More to <em>explore.</em>
               </h2>
+
               <Link
                 className="text-link"
                 href={`/furniture/${category.slug}`}

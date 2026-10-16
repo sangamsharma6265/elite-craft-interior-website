@@ -8,6 +8,7 @@ import {
   getCategory,
   whatsapp,
 } from "@/lib/catalogue";
+import { absoluteUrl, site } from "@/lib/site";
 
 type Props = {
   params: Promise<{ category: string }>;
@@ -27,20 +28,38 @@ export async function generateMetadata({
   const { category: slug } = await params;
   const category = getCategory(slug);
 
-  if (!category) return {};
+  if (!category) notFound();
+
+  const url = absoluteUrl(`/furniture/${category.slug}`);
+  const title = `${category.name} | Custom Orders in Delhi NCR`;
+  const description =
+    `${category.description} Book a free consultation with Elite Craft Interior.`;
 
   return {
-    title: `${category.name} | Custom Orders in Delhi NCR`,
-    description: `${category.description} Book a free consultation with Elite Craft Interior.`,
+    title,
+    description,
+    alternates: {
+      canonical: url,
+    },
     openGraph: {
+      type: "website",
+      locale: "en_IN",
+      siteName: site.name,
+      url,
       title: `${category.name} | Elite Craft Interior`,
-      description: category.description,
+      description,
       images: [
         {
           url: category.image,
           alt: category.imageAlt,
         },
       ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${category.name} | Elite Craft Interior`,
+      description,
+      images: [category.image],
     },
   };
 }
@@ -55,8 +74,40 @@ export default async function CategoryPage({ params }: Props) {
     (design) => design.category === category.slug,
   );
 
+  const breadcrumbs = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "Home",
+        item: absoluteUrl("/"),
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: "Furniture",
+        item: absoluteUrl("/furniture"),
+      },
+      {
+        "@type": "ListItem",
+        position: 3,
+        name: category.shortName,
+        item: absoluteUrl(`/furniture/${category.slug}`),
+      },
+    ],
+  };
+
   return (
     <main id="main-content">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(breadcrumbs).replace(/</g, "\\u003c"),
+        }}
+      />
+
       <section className="ec-page-intro">
         <div className="container">
           <nav className="ec-breadcrumbs" aria-label="Breadcrumb">
@@ -91,6 +142,7 @@ export default async function CategoryPage({ params }: Props) {
             >
               Discuss a Custom Order ↗
             </a>
+
             <a className="text-link" href="#category-designs">
               Browse all {categoryDesigns.length} references ↓
             </a>
