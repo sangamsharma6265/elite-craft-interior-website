@@ -9,6 +9,7 @@ import {
   serviceEnquiryLink,
   services,
 } from "@/lib/services";
+import { absoluteUrl, site } from "@/lib/site";
 
 type PageProps = {
   params: Promise<{ service: string }>;
@@ -29,27 +30,44 @@ export async function generateMetadata({
   const service = getService(slug);
 
   if (!service) {
-    return { title: "Service not found" };
+    notFound();
   }
+
+  const url = absoluteUrl(`/services/${service.slug}`);
+  const reference = service.references[0];
 
   return {
     title: service.seoTitle,
     description: service.seoDescription,
+    alternates: {
+      canonical: url,
+    },
     openGraph: {
+      type: "website",
+      locale: "en_IN",
+      siteName: site.name,
+      url,
       title: service.seoTitle,
       description: service.seoDescription,
-      type: "website",
       images: [
         {
-          url: service.references[0].image,
-          alt: service.references[0].imageAlt,
+          url: reference.image,
+          alt: reference.imageAlt,
         },
       ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: service.seoTitle,
+      description: service.seoDescription,
+      images: [reference.image],
     },
   };
 }
 
-export default async function ServicePage({ params }: PageProps) {
+export default async function ServicePage({
+  params,
+}: PageProps) {
   const { service: slug } = await params;
   const service = getService(slug);
 
@@ -57,25 +75,67 @@ export default async function ServicePage({ params }: PageProps) {
     notFound();
   }
 
+  const pageUrl = absoluteUrl(`/services/${service.slug}`);
+
+  const breadcrumbData = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "Home",
+        item: absoluteUrl("/"),
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: service.shortName,
+        item: pageUrl,
+      },
+    ],
+  };
+
   return (
     <main id="main-content" className="ec-service-page">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(breadcrumbData).replace(
+            /</g,
+            "\\u003c",
+          ),
+        }}
+      />
+
       <div className="container">
-        <nav className="ec-service-breadcrumb" aria-label="Breadcrumb">
+        <nav
+          className="ec-service-breadcrumb"
+          aria-label="Breadcrumb"
+        >
           <Link href="/">Home</Link>
           <span aria-hidden="true">/</span>
-          <span aria-current="page">{service.shortName}</span>
+          <span aria-current="page">
+            {service.shortName}
+          </span>
         </nav>
 
-        <nav className="ec-service-tabs" aria-label="Interior and exterior services">
+        <nav
+          className="ec-service-tabs"
+          aria-label="Interior and exterior services"
+        >
           {services.map((item) => (
             <Link
               key={item.slug}
               href={`/services/${item.slug}`}
-              aria-current={item.slug === service.slug ? "page" : undefined}
+              aria-current={
+                item.slug === service.slug ? "page" : undefined
+              }
             >
               {item.shortName}
             </Link>
           ))}
+
           <Link href="/furniture">Buy furniture ↗</Link>
         </nav>
 
@@ -85,8 +145,14 @@ export default async function ServicePage({ params }: PageProps) {
           </p>
 
           <h1>{service.name}</h1>
-          <p className="ec-service-heading">{service.heading}</p>
-          <p className="ec-service-introduction">{service.introduction}</p>
+
+          <p className="ec-service-heading">
+            {service.heading}
+          </p>
+
+          <p className="ec-service-introduction">
+            {service.introduction}
+          </p>
 
           <div className="ec-service-actions">
             <a
@@ -98,7 +164,10 @@ export default async function ServicePage({ params }: PageProps) {
               Free consultation ↗
             </a>
 
-            <a className="ec-service-secondary" href="#service-designs">
+            <a
+              className="ec-service-secondary"
+              href="#service-designs"
+            >
               Explore {service.references.length} references ↓
             </a>
           </div>
@@ -108,10 +177,12 @@ export default async function ServicePage({ params }: PageProps) {
               <strong>{service.references.length}</strong>
               <span>Design references</span>
             </div>
+
             <div>
               <strong>Delhi NCR</strong>
               <span>Service area</span>
             </div>
+
             <div>
               <strong>Own factory</strong>
               <span>Custom furniture orders</span>
@@ -124,8 +195,14 @@ export default async function ServicePage({ params }: PageProps) {
           aria-labelledby="service-scope-heading"
         >
           <div>
-            <p className="ec-service-eyebrow">YOUR PROJECT</p>
-            <h2 id="service-scope-heading">What we can discuss</h2>
+            <p className="ec-service-eyebrow">
+              YOUR PROJECT
+            </p>
+
+            <h2 id="service-scope-heading">
+              What we can discuss
+            </h2>
+
             <ul>
               {service.scope.map((item) => (
                 <li key={item}>{item}</li>
@@ -134,8 +211,12 @@ export default async function ServicePage({ params }: PageProps) {
           </div>
 
           <div>
-            <p className="ec-service-eyebrow">BEFORE WE QUOTE</p>
+            <p className="ec-service-eyebrow">
+              BEFORE WE QUOTE
+            </p>
+
             <h2>Help us understand your space</h2>
+
             <ul>
               {service.planning.map((item) => (
                 <li key={item}>{item}</li>
@@ -144,9 +225,14 @@ export default async function ServicePage({ params }: PageProps) {
           </div>
         </section>
 
-        <section id="service-designs" className="ec-service-gallery">
+        <section
+          id="service-designs"
+          className="ec-service-gallery"
+        >
           <div className="ec-service-section-heading">
-            <p className="ec-service-eyebrow">DESIGN DIRECTIONS</p>
+            <p className="ec-service-eyebrow">
+              DESIGN DIRECTIONS
+            </p>
             <h2>Explore the possibilities.</h2>
             <p>{service.galleryIntroduction}</p>
           </div>
@@ -170,21 +256,29 @@ export default async function ServicePage({ params }: PageProps) {
                     sizes="(max-width: 700px) 100vw, (max-width: 1100px) 50vw, 33vw"
                     className="ec-service-cover"
                   />
+
                   <span>Reference design</span>
                 </div>
 
                 <div className="ec-service-card-content">
-                  <p className="ec-service-eyebrow">{reference.code}</p>
+                  <p className="ec-service-eyebrow">
+                    {reference.code}
+                  </p>
+
                   <h3>{reference.name}</h3>
                   <p>{reference.description}</p>
 
                   <details className="ec-service-details">
-                    <summary>View reference details</summary>
+                    <summary>
+                      View reference details
+                    </summary>
+
                     <p>
                       Share this reference code and your measurements.
                       We will discuss the suitable design, available
                       materials and quotation for your space.
                     </p>
+
                     <a
                       href={reference.sourceUrl}
                       target="_blank"
@@ -196,7 +290,10 @@ export default async function ServicePage({ params }: PageProps) {
 
                   <a
                     className="ec-service-card-enquiry"
-                    href={serviceEnquiryLink(service, reference)}
+                    href={serviceEnquiryLink(
+                      service,
+                      reference,
+                    )}
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label={`Discuss ${reference.name} on WhatsApp`}
@@ -213,10 +310,14 @@ export default async function ServicePage({ params }: PageProps) {
           className="ec-service-furniture"
           aria-labelledby="service-furniture-heading"
         >
-          <p className="ec-service-eyebrow">MADE FOR YOUR SPACE</p>
+          <p className="ec-service-eyebrow">
+            MADE FOR YOUR SPACE
+          </p>
+
           <h2 id="service-furniture-heading">
             You can buy furniture from us too.
           </h2>
+
           <p>
             Order individual pieces or discuss furniture for a complete
             project. Explore our factory-made furniture references.
@@ -233,7 +334,10 @@ export default async function ServicePage({ params }: PageProps) {
             ))}
           </div>
 
-          <Link className="ec-service-secondary" href="/our-factory">
+          <Link
+            className="ec-service-secondary"
+            href="/our-factory"
+          >
             Learn about our factory ↗
           </Link>
         </section>
@@ -242,8 +346,13 @@ export default async function ServicePage({ params }: PageProps) {
           className="ec-service-faq"
           aria-labelledby="service-faq-heading"
         >
-          <p className="ec-service-eyebrow">COMMON QUESTIONS</p>
-          <h2 id="service-faq-heading">Before we begin.</h2>
+          <p className="ec-service-eyebrow">
+            COMMON QUESTIONS
+          </p>
+
+          <h2 id="service-faq-heading">
+            Before we begin.
+          </h2>
 
           {service.faqs.map((faq) => (
             <details key={faq.question}>
@@ -254,8 +363,12 @@ export default async function ServicePage({ params }: PageProps) {
         </section>
 
         <section className="ec-service-contact">
-          <p className="ec-service-eyebrow">LET’S DISCUSS YOUR SPACE</p>
+          <p className="ec-service-eyebrow">
+            LET’S DISCUSS YOUR SPACE
+          </p>
+
           <h2>Start with a free consultation.</h2>
+
           <p>
             Send your location, measurements and the reference codes
             you like. We will help you discuss the next step.
@@ -270,19 +383,23 @@ export default async function ServicePage({ params }: PageProps) {
             >
               WhatsApp your requirements ↗
             </a>
+
             <a
               className="ec-service-secondary"
-              href={`tel:${business.phone}`}
+              href={`tel:+91${business.phone}`}
             >
               Call {business.phone}
             </a>
           </div>
 
           <p className="ec-service-contact-links">
-            <a href={`tel:${business.secondPhone}`}>
+            <a href={`tel:+91${business.secondPhone}`}>
               {business.secondPhone}
             </a>
-            <a href={`mailto:${business.email}`}>{business.email}</a>
+
+            <a href={`mailto:${business.email}`}>
+              {business.email}
+            </a>
           </p>
         </section>
       </div>
@@ -350,7 +467,9 @@ export default async function ServicePage({ params }: PageProps) {
           border: 1px solid #4b544b;
           border-radius: 3px;
           font-size: 14px;
-          transition: background 160ms ease, border-color 160ms ease;
+          transition:
+            background 160ms ease,
+            border-color 160ms ease;
         }
 
         .ec-service-tabs a:hover,

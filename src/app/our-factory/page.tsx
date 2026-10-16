@@ -1,11 +1,54 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { consultationLink, whatsapp } from "@/lib/catalogue";
+import { absoluteUrl, site } from "@/lib/site";
+
+const pageTitle =
+  "Our Factory | Custom Furniture Manufacturing in Delhi NCR";
+
+const pageDescription =
+  "Order custom home and office furniture from Elite Craft Interior's own factory. Discuss dimensions, materials and finishes. Free initial consultation across Delhi NCR.";
+
+const pageUrl = absoluteUrl("/our-factory");
 
 export const metadata: Metadata = {
-  title: "Our Factory | Custom Furniture Manufacturing in Delhi NCR",
-  description:
-    "Elite Craft Interior has its own factory for custom home and office furniture. Discuss dimensions, materials and finishes with a free consultation.",
+  title: pageTitle,
+  description: pageDescription,
+  alternates: {
+    canonical: pageUrl,
+  },
+  openGraph: {
+    type: "website",
+    locale: "en_IN",
+    siteName: site.name,
+    url: pageUrl,
+    title: `${pageTitle} | ${site.name}`,
+    description: pageDescription,
+  },
+  twitter: {
+    card: "summary",
+    title: `${pageTitle} | ${site.name}`,
+    description: pageDescription,
+  },
+};
+
+const breadcrumbData = {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  itemListElement: [
+    {
+      "@type": "ListItem",
+      position: 1,
+      name: "Home",
+      item: absoluteUrl("/"),
+    },
+    {
+      "@type": "ListItem",
+      position: 2,
+      name: "Our Factory",
+      item: pageUrl,
+    },
+  ],
 };
 
 const steps = [
@@ -30,9 +73,22 @@ const steps = [
 export default function FactoryPage() {
   return (
     <main id="main-content">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(breadcrumbData).replace(
+            /</g,
+            "\\u003c",
+          ),
+        }}
+      />
+
       <section className="ec-page-intro">
         <div className="container">
-          <nav className="ec-breadcrumbs" aria-label="Breadcrumb">
+          <nav
+            className="ec-breadcrumbs"
+            aria-label="Breadcrumb"
+          >
             <Link href="/">Home</Link>
             <span aria-hidden="true">/</span>
             <span aria-current="page">Our Factory</span>
@@ -40,21 +96,27 @@ export default function FactoryPage() {
 
           <div className="ec-factory-intro">
             <div>
-              <p className="eyebrow">ELITE CRAFT INTERIOR MANUFACTURING</p>
+              <p className="eyebrow">
+                ELITE CRAFT INTERIOR MANUFACTURING
+              </p>
+
               <h1>
                 Your vision.
                 <br />
                 <em>Our own factory.</em>
               </h1>
+
               <p className="ec-lead">
                 We manufacture custom furniture for homes and offices.
-                Order a single piece, coordinated room furniture or a complete
-                project across Delhi NCR.
+                Order a single piece, coordinated room furniture or a
+                complete project across Delhi NCR.
               </p>
+
               <div className="button-row">
                 <Link className="button" href="/furniture">
                   Explore Furniture ↗
                 </Link>
+
                 <a
                   className="text-link"
                   href={consultationLink}
@@ -67,7 +129,10 @@ export default function FactoryPage() {
             </div>
 
             <div className="ec-factory-block">
-              <span className="ec-small-label">CRAFTED AROUND YOUR REQUIREMENTS</span>
+              <span className="ec-small-label">
+                CRAFTED AROUND YOUR REQUIREMENTS
+              </span>
+
               <h2>
                 Dimensions.
                 <br />
@@ -77,24 +142,34 @@ export default function FactoryPage() {
                 <br />
                 <em>Your choice.</em>
               </h2>
+
               <p>
-                Custom options are reviewed for feasibility and agreed before
-                manufacture. Share what you have in mind.
+                Custom options are reviewed for feasibility and agreed
+                before manufacture. Share what you have in mind.
               </p>
             </div>
           </div>
         </div>
       </section>
 
-      <section className="section inspiration-section" aria-labelledby="capabilities-title">
+      <section
+        className="section inspiration-section"
+        aria-labelledby="capabilities-title"
+      >
         <div className="container">
           <p className="eyebrow">WHAT YOU CAN ORDER</p>
-          <h2 id="capabilities-title" className="ec-heading-space">
+
+          <h2
+            id="capabilities-title"
+            className="ec-heading-space"
+          >
             Furniture for <em>homes and businesses.</em>
           </h2>
+
           <div className="ec-detail-grid">
             <div>
               <h3>For your home</h3>
+
               <ul className="ec-feature-list">
                 <li>Sofas, beds and coordinated room furniture</li>
                 <li>Dining tables, coffee tables and consoles</li>
@@ -102,8 +177,10 @@ export default function FactoryPage() {
                 <li>Modular kitchen cabinets and furniture</li>
               </ul>
             </div>
+
             <div>
               <h3>For your business</h3>
+
               <ul className="ec-feature-list">
                 <li>Office desks and workstations</li>
                 <li>Reception desks and meeting tables</li>
@@ -115,15 +192,23 @@ export default function FactoryPage() {
         </div>
       </section>
 
-      <section className="section process-section" aria-labelledby="factory-process-title">
+      <section
+        className="section process-section"
+        aria-labelledby="factory-process-title"
+      >
         <div className="container">
           <p className="eyebrow">HOW A CUSTOM ORDER WORKS</p>
+
           <h2 id="factory-process-title">
             From reference to <em>your finished furniture.</em>
           </h2>
+
           <div className="process-grid">
             {steps.map((step, index) => (
-              <article className="process-card" key={step.title}>
+              <article
+                className="process-card"
+                key={step.title}
+              >
                 <span>0{index + 1}</span>
                 <h3>{step.title}</h3>
                 <p>{step.text}</p>
@@ -133,16 +218,22 @@ export default function FactoryPage() {
         </div>
       </section>
 
-      <section className="contact-section" aria-labelledby="factory-contact-title">
+      <section
+        className="contact-section"
+        aria-labelledby="factory-contact-title"
+      >
         <div className="container">
           <p className="eyebrow">HAVE YOUR OWN REFERENCE?</p>
+
           <h2 id="factory-contact-title">
             Let&apos;s discuss <em>what we can create.</em>
           </h2>
+
           <p className="ec-lead">
-            Send a reference photo, approximate dimensions and your project
-            location. We will help you explore the next steps.
+            Send a reference photo, approximate dimensions and your
+            project location. We will help you explore the next steps.
           </p>
+
           <div className="ec-contact-actions">
             <a
               className="button"
